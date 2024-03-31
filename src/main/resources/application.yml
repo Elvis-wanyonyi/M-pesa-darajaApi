@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: Mpesa-darajaApi
+
+server:
+  port: 7777
+
+mpesa:
+  daraja:
+    consumer-key: Ak5AMVeouOea80OFFEp8qRGushwedEmFop8mXjKfw3OHwA4t
+    consumer-secret: OWLDtNFP1DWMBvpcZSCyI0HkT0t9CVzKK3TQqT7ivSDnAE1f1zRVut5pp1GiAlRe
+    oauth-endpoint: https://sandbox.safaricom.co.ke/oauth/v1/generate
+    grant_type: client_credentials
