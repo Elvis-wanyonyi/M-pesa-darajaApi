@@ -2,16 +2,23 @@ package com.wolfcode.MpesadarajaApi.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wolfcode.MpesadarajaApi.config.MpesaConfig;
-import com.wolfcode.MpesadarajaApi.dto.TokenResponse;
+import com.wolfcode.MpesadarajaApi.dto.*;
+import com.wolfcode.MpesadarajaApi.dto.stkPush.ExternalStkPushRequest;
+import com.wolfcode.MpesadarajaApi.dto.stkPush.InternalStkPushRequest;
+import com.wolfcode.MpesadarajaApi.dto.stkPush.StkPushSyncResponse;
+import com.wolfcode.MpesadarajaApi.repository.C2BTransactionRepository;
+import com.wolfcode.MpesadarajaApi.repository.StkPushRepository;
 import com.wolfcode.MpesadarajaApi.utils.HelperUtility;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import static com.wolfcode.MpesadarajaApi.utils.Constants.*;
 
@@ -23,6 +30,8 @@ public class DarajaService {
     private final ObjectMapper objectMapper;
     private final OkHttpClient okHttpClient;
     private final MpesaConfig mpesaConfig;
+    private final StkPushRepository stkPushRepository;
+    private final C2BTransactionRepository c2BTransactionRepository;
 
     public TokenResponse getAccessToken() {
 
@@ -40,11 +49,108 @@ public class DarajaService {
             Response response = okHttpClient.newCall(request).execute();
             assert response.body() != null;
 
-            // use Jackson to Decode the ResponseBody ...
             return objectMapper.readValue(response.body().string(), TokenResponse.class);
         } catch (IOException e) {
             log.error(String.format("Could not get access token. -> %s", e.getLocalizedMessage()));
             return null;
         }
+    }
+
+    public RegisterUrlResponse registerUrl() {
+
+        TokenResponse tokenResponse = getAccessToken();
+        RegisterUrlRequest registerUrlRequest = RegisterUrlRequest.builder()
+                .confirmationURL(mpesaConfig.getConfirmationURL())
+                .validationURL(mpesaConfig.getValidationURL())
+                .responseType(mpesaConfig.getResponseType())
+                .shortCode(mpesaConfig.getShortCode())
+                .build();
+
+        RequestBody body = RequestBody.create(JSON_MEDIA_TYPE,
+                Objects.requireNonNull(Objects.requireNonNull(HelperUtility.toJson(registerUrlRequest))));
+
+        Request request = new Request.Builder()
+                .url(mpesaConfig.getRegisterUrlEndpoint())
+                .post(body)
+                .addHeader(AUTHORIZATION_HEADER_STRING, String.format("%s %s", BEARER_AUTH_STRING, tokenResponse.getAccessToken()))
+                .build();
+
+        try {
+            Response response = okHttpClient.newCall(request).execute();
+
+            assert response.body() != null;
+            return objectMapper.readValue(response.body().string(), RegisterUrlResponse.class);
+
+        } catch (IOException e) {
+            log.error(String.format("Could not register url ->>> %s", e.getLocalizedMessage()));
+            return null;
+        }
+    }
+
+    public C2BResponse simulateC2B(SimulateC2BRequest simulateC2BRequest) {
+        TokenResponse tokenResponse = getAccessToken();
+        RequestBody requestBody = RequestBody.create(JSON_MEDIA_TYPE,
+                Objects.requireNonNull(HelperUtility.toJson(simulateC2BRequest)));
+
+        Request request = new Request.Builder()
+                .url(mpesaConfig.getSimulateTransactionEndpoint())
+                .post(requestBody)
+                .addHeader(AUTHORIZATION_HEADER_STRING,
+                        String.format("%s %s", BEARER_AUTH_STRING, tokenResponse.getAccessToken())).build();
+
+        try {
+            Response response = okHttpClient.newCall(request).execute();
+            assert response.body() != null;
+
+            return objectMapper.readValue(response.body().string(), C2BResponse.class);
+        } catch (IOException e) {
+            log.error(String.format("unable to simulate the transaction %s", e.getLocalizedMessage()));
+        }
+        return null;
+    }
+
+    public StkPushSyncResponse performStkPushTransaction(InternalStkPushRequest internalStkPushRequest) {
+
+
+        String transactionTimestamp = HelperUtility.getTransactionTimestamp();
+        String stkPushPassword = HelperUtility.getStkPushPassword(mpesaConfig.getStkPushShortCode(),
+                mpesaConfig.getStkPassKey(), transactionTimestamp);
+
+        ExternalStkPushRequest externalStkPushRequest = ExternalStkPushRequest.builder()
+                .businessShortCode(mpesaConfig.getStkPushShortCode())
+                .password(stkPushPassword)
+                .timestamp(transactionTimestamp)
+                .transactionType(CUSTOMER_PAYBILL_ONLINE)
+                .amount(internalStkPushRequest.getAmount())
+                .partyA(internalStkPushRequest.getPhoneNumber())
+                .partyB(mpesaConfig.getStkPushShortCode())
+                .phoneNumber(internalStkPushRequest.getPhoneNumber())
+                .callBackURL(mpesaConfig.getStkPushRequestCallbackUrl())
+                .accountReference(HelperUtility.getTransactionUniqueNumber())
+                .transactionDesc(String.format("->>>>> Transaction %s", internalStkPushRequest.getPhoneNumber()))
+                .build();
+
+        TokenResponse accessToken = getAccessToken();
+
+        RequestBody body = RequestBody.create(JSON_MEDIA_TYPE,
+                Objects.requireNonNull(HelperUtility.toJson(externalStkPushRequest)));
+
+        Request request = new Request.Builder()
+                .url(mpesaConfig.getStkPushRequestUrl())
+                .post(body)
+                .addHeader(AUTHORIZATION_HEADER_STRING, String.format("%s %s", BEARER_AUTH_STRING, accessToken.getAccessToken()))
+                .build();
+
+        try {
+            Response response = okHttpClient.newCall(request).execute();
+            assert response.body() != null;
+
+            return objectMapper.readValue(response.body().string(), StkPushSyncResponse.class);
+        } catch (IOException e) {
+            log.error(String.format("STK push transaction failed ->>>> %s", e.getLocalizedMessage()));
+            return null;
+        }
+
+
     }
 }

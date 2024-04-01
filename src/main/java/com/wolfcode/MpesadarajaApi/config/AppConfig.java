@@ -1,6 +1,7 @@
 package com.wolfcode.MpesadarajaApi.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wolfcode.MpesadarajaApi.dto.AcknowledgeResponse;
 import okhttp3.OkHttpClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,5 +17,12 @@ public class AppConfig {
     @Bean
     public ObjectMapper objectMapper(){
         return new ObjectMapper();
+    }
+
+    @Bean
+    public AcknowledgeResponse acknowledgeResponse() {
+        AcknowledgeResponse acknowledgeResponse = new AcknowledgeResponse();
+        acknowledgeResponse.setMessage("success");
+        return acknowledgeResponse;
     }
 }
