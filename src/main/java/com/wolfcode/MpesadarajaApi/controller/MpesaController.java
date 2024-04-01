@@ -1,23 +1,56 @@
 package com.wolfcode.MpesadarajaApi.controller;
 
-import com.wolfcode.MpesadarajaApi.dto.TokenResponse;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wolfcode.MpesadarajaApi.dto.*;
+import com.wolfcode.MpesadarajaApi.dto.stkPush.InternalStkPushRequest;
+import com.wolfcode.MpesadarajaApi.dto.stkPush.StkPushAsyncResponse;
+import com.wolfcode.MpesadarajaApi.dto.stkPush.StkPushSyncResponse;
 import com.wolfcode.MpesadarajaApi.service.DarajaService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/mpesa/")
+@RequestMapping("/api/payment/")
+@Slf4j
 public class MpesaController {
 
     private final DarajaService darajaService;
+    private final AcknowledgeResponse acknowledgeResponse;
+    private final ObjectMapper objectMapper;
 
     @GetMapping("token")
-    public ResponseEntity<TokenResponse> getAccessToken(){
+    public ResponseEntity<TokenResponse> getAccessToken() {
         return ResponseEntity.ok(darajaService.getAccessToken());
+    }
+
+    @PostMapping("register-url")
+    public ResponseEntity<RegisterUrlResponse> registerUrl() {
+        return ResponseEntity.ok(darajaService.registerUrl());
+    }
+
+    @PostMapping("validation")
+    public ResponseEntity<AcknowledgeResponse> validateTransaction(@RequestBody ValidationResponse validationResponse) {
+        return ResponseEntity.ok(acknowledgeResponse);
+    }
+
+    @PostMapping("simulate-c2b")
+    public ResponseEntity<C2BResponse> simulateC2B(@RequestBody SimulateC2BRequest simulateC2BRequest) {
+        return ResponseEntity.ok(darajaService.simulateC2B(simulateC2BRequest));
+    }
+
+    @PostMapping("stk-push")
+    public ResponseEntity<StkPushSyncResponse> performStkPushTransaction(@RequestBody InternalStkPushRequest internalStkPushRequest) {
+        return ResponseEntity.ok(darajaService.performStkPushTransaction(internalStkPushRequest));
+    }
+
+    @PostMapping("stk-push-status")
+    public ResponseEntity<AcknowledgeResponse> acknowledgeStkPushResponse(@RequestBody StkPushAsyncResponse stkPushAsyncResponse) throws JsonProcessingException {
+        log.info("********** STK Push Async Response ***********");
+        log.info(objectMapper.writeValueAsString(stkPushAsyncResponse));
+        return ResponseEntity.ok(acknowledgeResponse);
     }
 }
