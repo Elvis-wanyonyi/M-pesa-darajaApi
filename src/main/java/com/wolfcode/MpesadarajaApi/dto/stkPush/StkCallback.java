@@ -6,18 +6,18 @@ import lombok.Data;
 @Data
 public class StkCallback {
 
-	@JsonProperty("MerchantRequestID")
-	private String merchantRequestID;
+    @JsonProperty("MerchantRequestID")
+    private String merchantRequestID;
 
-	@JsonProperty("CheckoutRequestID")
-	private String checkoutRequestID;
+    @JsonProperty("CheckoutRequestID")
+    private String checkoutRequestID;
 
-	@JsonProperty("ResultDesc")
-	private String resultDesc;
+    @JsonProperty("ResultDesc")
+    private String resultDesc;
 
-	@JsonProperty("ResultCode")
-	private int resultCode;
+    @JsonProperty("ResultCode")
+    private int resultCode;
 
-	@JsonProperty("CallbackMetadata")
-	private CallbackMetadata callbackMetadata;
+    @JsonProperty("CallbackMetadata")
+    private CallbackMetadata callbackMetadata;
 }

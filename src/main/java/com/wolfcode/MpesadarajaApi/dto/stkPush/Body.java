@@ -6,6 +6,6 @@ import lombok.Data;
 @Data
 public class Body {
 
-	@JsonProperty("stkCallback")
-	private StkCallback stkCallback;
+    @JsonProperty("stkCallback")
+    private StkCallback stkCallback;
 }

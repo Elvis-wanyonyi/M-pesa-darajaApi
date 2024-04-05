@@ -6,6 +6,6 @@ import lombok.Data;
 @Data
 public class StkPushAsyncResponse {
 
-	@JsonProperty("Body")
-	private Body body;
+    @JsonProperty("Body")
+    private Body body;
 }

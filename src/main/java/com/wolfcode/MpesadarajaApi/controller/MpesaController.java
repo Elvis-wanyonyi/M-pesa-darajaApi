@@ -38,7 +38,7 @@ public class MpesaController {
     }
 
     @PostMapping("simulate-c2b")
-    public ResponseEntity<C2BResponse> simulateC2B(@RequestBody SimulateC2BRequest simulateC2BRequest) {
+    public ResponseEntity<C2bResponse> simulateC2B(@RequestBody SimulateC2BRequest simulateC2BRequest) {
         return ResponseEntity.ok(darajaService.simulateC2B(simulateC2BRequest));
     }
 

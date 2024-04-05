@@ -6,8 +6,7 @@ import com.wolfcode.MpesadarajaApi.dto.*;
 import com.wolfcode.MpesadarajaApi.dto.stkPush.ExternalStkPushRequest;
 import com.wolfcode.MpesadarajaApi.dto.stkPush.InternalStkPushRequest;
 import com.wolfcode.MpesadarajaApi.dto.stkPush.StkPushSyncResponse;
-import com.wolfcode.MpesadarajaApi.repository.C2BTransactionRepository;
-import com.wolfcode.MpesadarajaApi.repository.StkPushRepository;
+import com.wolfcode.MpesadarajaApi.utils.Constants;
 import com.wolfcode.MpesadarajaApi.utils.HelperUtility;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,8 +29,6 @@ public class DarajaService {
     private final ObjectMapper objectMapper;
     private final OkHttpClient okHttpClient;
     private final MpesaConfig mpesaConfig;
-    private final StkPushRepository stkPushRepository;
-    private final C2BTransactionRepository c2BTransactionRepository;
 
     public TokenResponse getAccessToken() {
 
@@ -57,29 +54,36 @@ public class DarajaService {
     }
 
     public RegisterUrlResponse registerUrl() {
-
         TokenResponse tokenResponse = getAccessToken();
-        RegisterUrlRequest registerUrlRequest = RegisterUrlRequest.builder()
-                .confirmationURL(mpesaConfig.getConfirmationURL())
-                .validationURL(mpesaConfig.getValidationURL())
-                .responseType(mpesaConfig.getResponseType())
-                .shortCode(mpesaConfig.getShortCode())
-                .build();
+        String token = tokenResponse.getAccessToken();
+        log.info("token >>>>>>: {}", token);
+
+        RegisterUrlRequest registerUrlRequest = new RegisterUrlRequest(
+                mpesaConfig.getShortCode(),
+                mpesaConfig.getResponseType(),
+                mpesaConfig.getConfirmationURL(),
+                mpesaConfig.getValidationURL());
 
         RequestBody body = RequestBody.create(JSON_MEDIA_TYPE,
                 Objects.requireNonNull(Objects.requireNonNull(HelperUtility.toJson(registerUrlRequest))));
+        log.info("body------: {}", HelperUtility.toJson(registerUrlRequest));
 
         Request request = new Request.Builder()
                 .url(mpesaConfig.getRegisterUrlEndpoint())
                 .post(body)
-                .addHeader(AUTHORIZATION_HEADER_STRING, String.format("%s %s", BEARER_AUTH_STRING, tokenResponse.getAccessToken()))
+                .addHeader(AUTHORIZATION_HEADER_STRING, String.format("%s %s", BEARER_AUTH_STRING, token))
                 .build();
 
         try {
             Response response = okHttpClient.newCall(request).execute();
-
-            assert response.body() != null;
-            return objectMapper.readValue(response.body().string(), RegisterUrlResponse.class);
+            if (response.isSuccessful()) {
+                log.info(String.format("Response >>>>> %s", response));
+                return objectMapper.readValue(Objects.requireNonNull(response.body()).string(), RegisterUrlResponse.class);
+            } else {
+                log.error("Response body: {}", response.body() != null ? response.body().string() : "No response body");
+                log.error("register url failed ");
+                return null;
+            }
 
         } catch (IOException e) {
             log.error(String.format("Could not register url ->>> %s", e.getLocalizedMessage()));
@@ -87,22 +91,26 @@ public class DarajaService {
         }
     }
 
-    public C2BResponse simulateC2B(SimulateC2BRequest simulateC2BRequest) {
+    public C2bResponse simulateC2B(SimulateC2BRequest simulateC2BRequest) {
         TokenResponse tokenResponse = getAccessToken();
-        RequestBody requestBody = RequestBody.create(JSON_MEDIA_TYPE,
+        String token = tokenResponse.getAccessToken();
+
+        RequestBody requestBody = RequestBody.create(Constants.JSON_MEDIA_TYPE,
                 Objects.requireNonNull(HelperUtility.toJson(simulateC2BRequest)));
 
         Request request = new Request.Builder()
                 .url(mpesaConfig.getSimulateTransactionEndpoint())
-                .post(requestBody)
+                .method("POST", requestBody)
                 .addHeader(AUTHORIZATION_HEADER_STRING,
-                        String.format("%s %s", BEARER_AUTH_STRING, tokenResponse.getAccessToken())).build();
+                        String.format("%s %s", BEARER_AUTH_STRING, token))
+                .build();
 
         try {
             Response response = okHttpClient.newCall(request).execute();
             assert response.body() != null;
+            log.debug(String.format("Response ->>>>>>> %s", response));
 
-            return objectMapper.readValue(response.body().string(), C2BResponse.class);
+            return objectMapper.readValue(response.body().string(), C2bResponse.class);
         } catch (IOException e) {
             log.error(String.format("unable to simulate the transaction %s", e.getLocalizedMessage()));
         }
@@ -126,7 +134,7 @@ public class DarajaService {
                 .partyB(mpesaConfig.getStkPushShortCode())
                 .phoneNumber(internalStkPushRequest.getPhoneNumber())
                 .callBackURL(mpesaConfig.getStkPushRequestCallbackUrl())
-                .accountReference(HelperUtility.getTransactionUniqueNumber())
+                .accountReference("ELVIS")
                 .transactionDesc(String.format("->>>>> Transaction %s", internalStkPushRequest.getPhoneNumber()))
                 .build();
 
@@ -134,10 +142,10 @@ public class DarajaService {
 
         RequestBody body = RequestBody.create(JSON_MEDIA_TYPE,
                 Objects.requireNonNull(HelperUtility.toJson(externalStkPushRequest)));
-
+        log.info(HelperUtility.toJson(externalStkPushRequest));
         Request request = new Request.Builder()
                 .url(mpesaConfig.getStkPushRequestUrl())
-                .post(body)
+                .method("POST", body)
                 .addHeader(AUTHORIZATION_HEADER_STRING, String.format("%s %s", BEARER_AUTH_STRING, accessToken.getAccessToken()))
                 .build();
 
