@@ -8,6 +8,7 @@ import lombok.Data;
 @Builder
 public class ExternalStkPushRequest {
 
+
     @JsonProperty("TransactionType")
     private String transactionType;
 

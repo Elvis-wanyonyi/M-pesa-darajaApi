@@ -3,6 +3,7 @@ package com.wolfcode.MpesadarajaApi.config;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "mpesa.daraja")
@@ -13,7 +14,7 @@ public class MpesaConfig {
     private String grantType;
     private String oauthEndpoint;
     private String registerUrlEndpoint;
-    private String shortCode;
+    private int shortCode;
     private String confirmationURL;
     private String validationURL;
     private String responseType;
@@ -22,9 +23,5 @@ public class MpesaConfig {
     private String stkPushShortCode;
     private String stkPushRequestUrl;
     private String stkPushRequestCallbackUrl;
-    @Override
-    public String toString() {
-        return String.format("{consumerKey='%s', consumerSecret='%s', grantType='%s', oauthEndpoint='%s'}",
-                consumerKey, consumerSecret, grantType, oauthEndpoint);
-    }
+
 }
